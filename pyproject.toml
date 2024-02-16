@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xlutil"
-version = "0.1.0"
+version = "0.1.1"
 description = "Excel utilities for easier workflow when dealing with dataframes and excel files"
 authors = ["Santo K Thomas <santokalayil@gmail.com>"]
 license = "MIT"
