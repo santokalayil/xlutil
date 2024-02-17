@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Self
 import pandas as pd
 
 
@@ -9,6 +10,7 @@ class NewExcelFile:
         """Initialize the ExcelFile"""
         self.sheets: dict[str, pd.DataFrame] = dict()
         self.index_info: dict[str, bool] = dict()
+        self.index = 0
 
     def add_sheet(
         self, sheet_name: str, dataframe: pd.DataFrame, replace=True, index=True
@@ -52,6 +54,8 @@ class NewExcelFile:
         return self.view_sheet(__name)
 
     def __getattr__(self, __name: str) -> pd.DataFrame:
+        if __name == "keys":
+            return self.__dict__
         return self.view_sheet(__name)
 
     def __setitem__(self, __name: str, __value: pd.DataFrame) -> None:
@@ -61,8 +65,8 @@ class NewExcelFile:
             raise ValueError("The value to be set should be a pandas dataframe")
 
     def __delitem__(self, key):
-        if key in self.items.keys():
-            del self.items[key]
+        if key in self.sheets.keys():
+            del self.sheets[key]
         else:
             raise KeyError("The sheet does not exist.")
 
@@ -93,3 +97,21 @@ class NewExcelFile:
     def __repr__(self) -> str:
         return f"""Excel file with {len(self.sheets)} sheets. 
     Sheets: {", ".join(self.sheets.keys())}"""
+
+    def __iter__(self) -> Self:
+        return self
+
+    def __next__(self) -> pd.DataFrame:
+        if self.index < len(self.sheets):
+            sheet = self.sheets[list(self.sheets.keys())[self.index]]
+            self.index += 1
+            return sheet
+        else:
+            self.index = 0
+            raise StopIteration
+
+    def __dict__(self) -> dict[str, pd.DataFrame]:
+        return self.sheets.copy()
+
+    def __len__(self) -> int:
+        return len(self.sheets)
