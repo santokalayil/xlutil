@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing_extensions import Self
-from typing import Dict, Union, Optional
+from typing import Any, Dict, Union, Optional
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
@@ -24,10 +24,20 @@ class ExcelFile:
             self._filepath = None
         
     def open(self, filepath: Union[Path, str]) -> None:
-        if not (isinstance(filepath, Path) or isinstance(filepath, str)):
-            raise Exception(
-                "The save path should be a pathlib.Path or str formated path"
-            )
+        """
+        Opens an existing Excel file.
+
+        Args:
+            filepath (Union[Path, str]): The path to the Excel file.
+
+        Raises:
+            Exception: If the filepath is not a valid Path or str.
+
+        Returns:
+            None
+        """
+        if not isinstance(filepath, (Path, str)):
+            raise Exception("filepath should be a pathlib.Path or str")
         self._workbook = load_workbook(filepath, keep_vba=Path(filepath).suffix in [".xlsm", ".XLSM"])
         
     def initialize_new_workbook(self, remove_initial_sheet=True):
@@ -40,11 +50,6 @@ class ExcelFile:
     def new_sheet(self, sheet_name: str) -> Worksheet: 
         if self._workbook is None:
             self.initialize_new_workbook()
-        # if not len(self._workbook._sheets):
-        #     raise NotImplementedError("Len of workbook sheets is 0")
-        # if len(self._workbook._sheets) == 1:
-        #     ws = self._workbook.worksheets[0]
-        #     ws.title = sheet_name
         ws = self._workbook.create_sheet(title=sheet_name)
         # this internally adds the worksheet to the workbook
             
@@ -180,6 +185,54 @@ class ExcelFile:
             self._workbook.save(filepath)
         else:
             raise ValueError("The excel file empty. You cannot save empty file")
+        
+    def __str__(self) -> str:
+        return "Base Excel File"
+    
+    def __repr__(self) -> pd.DataFrame:
+        return repr(str(self))
+    
+    @property
+    def see(self) -> pd.DataFrame:
+        sheets: Dict = self.sheets
+        if "Sheet1" in sheets.keys():
+            return self["Sheet1"].copy()
+        elif sheets.keys():
+            return sheets[list(sheets.keys())[0]]
+        raise ValueError("No sheets are set as value")
+    
+    
+    @staticmethod
+    def _load_df_from_path(path: Union[str, Path]) -> pd.DataFrame:
+        if isinstance(path, str):
+            path = Path(path)
+        elif not isinstance(path, Path):
+            raise ValueError("Value for path variable is of neither str or Path type")
+        if not path.is_file():
+            raise ValueError("The path passed is does not exist or not a file")
+        if path.suffix.lower() in [".xlsx", ".xls", ".xlsm"]:
+            return pd.read_excel(path)
+        elif path.suffix.lower() in [".csv"]:
+            return pd.read_csv(path)
+        elif path.suffix.lower() in [".parquet"]:
+            return pd.read_parquet(path)
+        elif path.suffix.lower() in [".feather"]:
+            return pd.read_feather(path)
+        raise TypeError("File type is not supported")
+            
+            
+        
+    
+    def load_data(self, value: Any) -> None:
+        if isinstance(value, pd.DataFrame):
+            self.add_sheet("Sheet1", value, replace=False),
+        elif isinstance(value, (str, Path)):
+            self.add_sheet("Sheet1", self._load_df_from_path(value), replace=False)
+        else:
+            raise ValueError("The type of value you are trying to set is not supported")
+            
+            
+        
 
 
 class NewExcelFile:
